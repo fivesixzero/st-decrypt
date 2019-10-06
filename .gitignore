@@ -1,4 +1,13 @@
-build/
-nbproject/private
-test/
-*.bin
+# Maven Build outputs
+target/
+
+# Generated configs from IntellJ IDEA
+.idea
+
+# Generated configs from VSCode
+.vscode/
+
+# Generated configs from VSCode Java Extension
+.settings
+.classpath
+.project
