@@ -3,6 +3,7 @@ target/
 
 # Generated configs from IntellJ IDEA
 .idea
+*.iml
 
 # Generated configs from VSCode
 .vscode/
