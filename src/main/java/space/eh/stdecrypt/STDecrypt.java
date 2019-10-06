@@ -23,16 +23,25 @@ public class STDecrypt {
 
     private static Dumper dumper;
 
+    private static int MAX_STR_ARRAY_SIZE = 16;
+
     public static void main(String[] args) {
+
+        // Handle args
         CommandLineParser parser = new DefaultParser();
         Options options = new Options();
-        String help = "stdecrypt.jar [-e] -k <key> -i <input> -o <output>";
-        options.addOption("k", "key", true, "encryption key");
+
+        options.addOption("f", "force", false, "force output overwrite");
         options.addOption("e", "encrypt", false, "encrypt binary");
+        options.addOption("k", "key", true, "encryption key");
         options.addOption("i", "input", true, "input file");
         options.addOption("o", "output", true, "output file");
+
+        String help = "stdecrypt.jar [-e] [-f] -k <key> -i <input> -o <output>";
+
         HelpFormatter formatter = new HelpFormatter();
         CommandLine opts = null;
+
         try {
             opts = parser.parse(options, args);
             if (opts.hasOption("key")
@@ -50,10 +59,39 @@ public class STDecrypt {
             System.exit(1);
         }
 
-        dumper = new Dumper(opts.getOptionValue("output"));
-        dump_fw(opts.getOptionValue("input"));
+        String fileNameInput = opts.getOptionValue("input");
+        String fileNameOutput = opts.getOptionValue("output");
+
+        if (!checkFileExistence(fileNameInput)) {
+            System.out.println("Input file cannot be found, " +
+                    "inputFile: [" + fileNameInput + "]");
+            return;
+        }
+
+        if (checkFileExistence(fileNameInput)) {
+            System.out.println("Output file already exists, " +
+                    "inputFile: [" + fileNameInput + "]");
+            if (opts.hasOption("f")) {
+                File outFile = new File(fileNameOutput);
+                if (!outFile.delete()) {
+                    System.out.println("Output file delete failed, terminating");
+                    return;
+                }
+            } else {
+                System.out.println("Output file is present and force is not enabled, terminating");
+                return;
+            }
+        }
+
+        dumper = new Dumper(fileNameOutput);
+        dump_fw(fileNameInput);
         dumper.close();
         System.out.println("Done!");
+    }
+
+    private static boolean checkFileExistence(String fileName) {
+        File inputFile = new File(fileName);
+        return inputFile.exists();
     }
 
     static long getFileLen(String file) {
@@ -96,13 +134,13 @@ public class STDecrypt {
     static long encodeAndWrite(final byte[] array, long n, final int n2) {
         long a = 0L;
         final byte[] array2 = new byte[4 * ((array.length + 3) / 4)];
-        final byte[] array3 = new byte[16];
-        str_to_arr(encryptionKey, array3);
+        final byte[] keyBytes = new byte[16];
+        str_to_arr(encryptionKey, keyBytes);
 
         if (encrypt) {
-            encrypt(array, array2, array3, array.length);
+            encrypt(array, array2, keyBytes, array.length);
         } else {
-            decrypt(array, array2, array3, array.length);
+            decrypt(array, array2, keyBytes, array.length);
         }
 
         /* Send chunk of data to device */
@@ -170,8 +208,14 @@ public class STDecrypt {
      */
     public static void str_to_arr(final String s, final byte[] array) {
         final char[] charArray = s.toCharArray();
-        for (int i = 0; i < 16; ++i) {
-            array[i] = (byte) charArray[i];
+        for (int i = 0; i < MAX_STR_ARRAY_SIZE; ++i) {
+            byte charByte;
+            if (i < charArray.length) {
+                charByte = (byte) charArray[i];
+            } else {
+                charByte = 0;
+            }
+            array[i] = charByte;
         }
     }
 
